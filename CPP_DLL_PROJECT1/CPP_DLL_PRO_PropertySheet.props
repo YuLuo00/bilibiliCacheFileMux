@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)\output\$(Platform)\$(Configuration)\</OutDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>DLL_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <SupportJustMyCode>true</SupportJustMyCode>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>REM 测试生成事件
+
+REM 设置生成文件的全路径
+SET BuildFile=^
+    "$(OutputPath)$(TargetName).dll"^
+    "$(OutputPath)$(TargetName).lib"^
+    "$(OutputPath)$(TargetName).pdb"
+
+REM 拷贝目标路径
+SET CopyToPath=^
+    "$(SolutionDir)\CLR_Project1"
+
+REM 遍历每个目标目录
+for %%d in (%CopyToPath%) do (
+    REM 遍历指定的文件
+    for %%f in (%BuildFile%) do (
+        REM 复制文件到当前目标目录
+        copy "%%f" "%%~d"
+    )
+)
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>
