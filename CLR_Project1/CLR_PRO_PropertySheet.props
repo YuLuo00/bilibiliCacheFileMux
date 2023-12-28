@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
@@ -17,6 +17,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>CPP_DLL_PROJECT1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>REM 测试生成事件
@@ -28,15 +29,14 @@ SET BuildFile=^
 
 REM 拷贝目标路径
 SET CopyToPath=^
-    "$(SolutionDir)\MainUI"^
-    "$(SolutionDir)\CLR_CppFileArchieve"^
+    "$(SolutionDir)\BiliBiliCacheMuxUI"
 
 REM 遍历每个目标目录
 for %%d in (%CopyToPath%) do (
     REM 遍历指定的文件
     for %%f in (%BuildFile%) do (
         REM 复制文件到当前目标目录
-        REM copy "%%f" "%%~d"
+        copy "%%f" "%%~d"
     )
 )
 </Command>
