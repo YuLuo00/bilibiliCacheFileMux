@@ -34,8 +34,7 @@ SET BuildFile=^
 REM 拷贝目标路径
 SET CopyToPath=^
     "$(SolutionDir)\CLR_Project1"^
-    "$(SolutionDir)\BiliBiliCacheMuxUI"
-
+    "$(SolutionDir)\BiliBiliCacheMuxUI"^
 REM 遍历每个目标目录
 for %%d in (%CopyToPath%) do (
     REM 遍历指定的文件

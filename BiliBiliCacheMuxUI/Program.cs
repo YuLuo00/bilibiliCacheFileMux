@@ -14,6 +14,10 @@ namespace BiliBiliCacheMuxUI
         [STAThread]
         static void Main()
         {
+            string vedioFile = @"D:\_project\vs2019\C++\000\bilibiliCache\932815842\2\120\video.m4s";
+            string audioFile = @"D:\_project\vs2019\C++\000\bilibiliCache\932815842\2\120\audio.m4s";
+            string outPutPath = @"D:\_project\vs2019\C++\000\bilibiliCache\932815842\2\120\output.mp4";
+            importClassExample.TestMainFunc(vedioFile, audioFile, outPutPath);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1());
