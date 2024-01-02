@@ -68,6 +68,24 @@ bool SetNewStream(AVFormatContext* _dstContext,
 class MediaFile {
 private:
     queue<AVPacket*> m_packetCache; // 数据包缓存队列
+
+public:
+    // <流序号，<流，数据包>>
+    std::map<int, std::pair<AVStream*, std::vector<AVPacket*>>> m_datas;
+    void GetDatas();
+    function<void(AVStream*, AVStream*)> m_copyStream = [](AVStream* src, AVStream* dst) {
+        dst->discard = src->discard;
+        dst->id = src->id;
+        dst->time_base = src->time_base;
+        dst->start_time = src->start_time;
+        dst->duration = src->duration;
+        dst->nb_frames = src->nb_frames;
+        dst->disposition = src->disposition;
+        dst->sample_aspect_ratio = src->sample_aspect_ratio;
+        dst->event_flags = src->event_flags;
+        dst->r_frame_rate = src->r_frame_rate;
+        dst->pts_wrap_bits = src->pts_wrap_bits;
+    };
 public:
     AVMediaType m_mediaType = AVMediaType::AVMEDIA_TYPE_UNKNOWN;
     int m_mediaFrames = 0;
@@ -76,6 +94,7 @@ public:
     std::string m_file;
     AVFormatContext* m_ctx = nullptr;
     vector<StreamPacketsReader> m_reader;
+
     //queue<AVPacket*> m_queue;
     MediaFile(string file, AVMediaType _type);;
     ~MediaFile() {
@@ -105,12 +124,6 @@ public:
     /// </summary>
     /// <returns></returns>
     bool Open(AVFormatContext* _dstCtx = nullptr);
-    /// <summary>
-    /// 复制流到目标上下文里去，
-    /// </summary>
-    /// <param name="_dstCtx"></param>
-    /// <returns></returns>
-    bool CopyStreamTo(AVFormatContext* _dstCtx);
 
     std::atomic<bool> m_hasReadAll = false;
     /// <summary>
@@ -121,25 +134,6 @@ public:
     /// <returns></returns>
     void PushCache();
     void GetAllPackets() {
-
-        // 遍历指定媒体流
-        //avformat_find_stream_info(m_ctx, NULL);
-        //for (int i = 0; i < m_ctx->nb_streams; i++) {
-        //    if (m_ctx->streams[i]->codecpar->codec_type == m_mediaType) {
-        //        // 复制到输出流
-        //        AVStream* newStream = avformat_new_stream(_dstCtx, NULL);
-        //        avcodec_parameters_copy(newStream->codecpar, m_ctx->streams[i]->codecpar);
-        //        StreamPacketsReader m_reader1;
-        //        // 记录索引
-        //        int outputIdx = newStream->index;
-        //        m_streamInfo[outputIdx].srcStream = m_ctx->streams[i];
-        //        m_streamInfo[outputIdx].srcStreamIndex = i;
-
-        //        m_reader1.m_ctx = m_ctx;
-        //        m_reader1.m_outputStrIdx = outputIdx;
-        //    }
-        //}
-        
         int sizeBuff = 0;
         int index = 0;
 
@@ -184,22 +178,40 @@ public:
                 }
             }
             packetsBuffer.push_back(avPacket);
-            //// 跳出 读取完最近一个关键帧，跳出
-            //if (avPacket->flags == AV_PKT_FLAG_KEY && m_mediaType == AVMEDIA_TYPE_VIDEO) {
-            //    break;
-            //}
-            //// 跳出， 音频流读满150个，退出
-            //else if (packetsBuffer.size() >= 150 && m_mediaType == AVMEDIA_TYPE_AUDIO) {
-            //    break;
-            //}
         }
         // 排序
-        std::sort(packetsBuffer.begin(), packetsBuffer.end(), [](AVPacket* a, AVPacket* b) {
-            return a->dts < b->dts;
-            });
+        //std::sort(packetsBuffer.begin(), packetsBuffer.end(), [](AVPacket* a, AVPacket* b) {
+        //    return a->dts < b->dts;
+        //    });
         // 出参
         for (AVPacket* p : packetsBuffer) {
             m_packetCache.push(p);
+        }
+        LogDebug() << "长度为：：" << packetsBuffer.size() << '\n';
+
+        std::vector<int> dtsVec;
+        for (const auto& packet : packetsBuffer) {
+            dtsVec.push_back(packet->dts);
+        }
+        std::vector<int> ptsVec;
+        for (const auto& packet : packetsBuffer) {
+            ptsVec.push_back(packet->pts);
+        }
+
+        //std::vector<int> ptsVec;
+        //for (const auto& packet : packetsBuffer) {
+        //    ptsVec.push_back(packet->pts);
+        //    double realTime = av_q2d(timeBase) * packet.pts;
+        //}
+
+        std::vector<AVPacket*> keyPakVec;
+        std::vector<int> keyPosVec;
+        for (size_t i = 0; i < packetsBuffer.size(); i++) {
+            AVPacket* curPkt = packetsBuffer[i];
+            if (curPkt->flags & AV_PKT_FLAG_KEY) {
+                keyPakVec.push_back(curPkt);
+                keyPosVec.push_back(i);
+            }
         }
         LogDebug() << "长度为：：" << packetsBuffer.size() << '\n';
     }

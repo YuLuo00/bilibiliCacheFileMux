@@ -46,7 +46,56 @@ AVPacket* MediaFile::GetFirstPack() {
     return pack;
 }
 
+void MediaFile::GetDatas()
+{
+    // 打开文件
+    int ret = avformat_open_input(&m_ctx, m_file.c_str(), NULL, NULL);
+    if (m_ctx == nullptr) {
+        LogDebug() << "严重错误，open失败" << '\n';//
+    }
+    if (ret != 0) {
+        av_strerror(ret, m_error, 200);
+        av_log(NULL, AV_LOG_WARNING, "error, ret=%d, msg=%s\n", ret, m_error);
+        return;
+    }
 
+    // 获取流信息到上下文结构体
+    AVDictionary* info = nullptr;
+    av_dict_set(&info, "nb_streams", 0, 0);
+    if (avformat_find_stream_info(m_ctx, &info) < 0) {
+        return;
+    };
+
+    // 记录所有目标流
+    for (int i = 0; i < m_ctx->nb_streams; i++) {
+        m_datas[i].first = m_ctx->streams[i];
+    }
+
+    // 读取所有数据包
+    while (true) {
+        AVPacket* avPacket = av_packet_alloc();
+        int ret = 0;
+        // 读取
+        try {
+            ret = av_read_frame(m_ctx, avPacket);
+            if (ret == AVERROR_EOF) {
+                LogDebug() << "读取文件结束" << '\n';
+                break;
+            }
+            if (ret < 0) {
+                LogDebug() << "读取数据包错误" << '\0';
+                break;
+            }
+        }
+        catch (...) {
+            LogDebug() << "触发了异常" << '\n';
+            LogDebug() << "读取文件结束" << '\n';
+            break;
+        }
+        // 缓存
+        m_datas.at(avPacket->stream_index).second.push_back(avPacket);
+    }
+}
 
 /// <summary>
 /// 打开媒体文件，获取指定类型的流信息
@@ -65,15 +114,24 @@ bool MediaFile::Open(AVFormatContext* _dstCtx) {
     }
 
     // 遍历指定媒体流
-    avformat_find_stream_info(m_ctx, NULL);
+    AVDictionary* info = nullptr;
+    av_dict_set(&info, "nb_streams", 0, 0);
+    if (avformat_find_stream_info(m_ctx, &info) < 0) {
+        return -1;
+    };
     for (int i = 0; i < m_ctx->nb_streams; i++) {
         if (m_ctx->streams[i]->codecpar->codec_type == m_mediaType) {
             // 复制到输出流
-            AVStream* newStream = avformat_new_stream(_dstCtx, NULL);
-            avcodec_parameters_copy(newStream->codecpar, m_ctx->streams[i]->codecpar);
+            AVStream* outStream = avformat_new_stream(_dstCtx, NULL);
+            AVStream* inputStr = m_ctx->streams[i];
+            avcodec_parameters_copy(outStream->codecpar, m_ctx->streams[i]->codecpar);
+            {
+                m_copyStream(inputStr, outStream);
+            }
+
             StreamPacketsReader m_reader1;
             // 记录索引
-            int outputIdx = newStream->index;
+            int outputIdx = outStream->index;
             m_streamInfo[outputIdx].srcStream = m_ctx->streams[i];
             m_streamInfo[outputIdx].srcStreamIndex = i;
 
@@ -97,6 +155,23 @@ void MediaFile::PushCache() {
     int index = 0;
 
     vector<AVPacket*> packetsBuffer;
+
+    {
+        struct CustomDeleter {
+            void operator()(int* ptr) {
+                std::cout << "Custom deleter is called!" << std::endl;
+                delete ptr;
+            }
+        };
+
+        function<void(AVPacket*)> freeAvpkt = [](AVPacket* ptr) {
+            //av_packet_ref
+            av_packet_unref(ptr);
+        };
+
+        std::unique_ptr<int, CustomDeleter> customPtr(new int, CustomDeleter());
+        std::unique_ptr<AVPacket, function<void(AVPacket*)>> customPtr1(packetsBuffer[0], freeAvpkt);
+    }
     // 原始流索引
     set<int> srcStreIdx;
     for (const auto &stream : m_streamInfo) {
