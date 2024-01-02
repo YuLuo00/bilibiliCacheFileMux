@@ -41,6 +41,7 @@ public:
     char m_error[200];
     std::string m_file;
     AVFormatContext* m_ctx = nullptr;
+    AVMediaType m_type;
 
     MediaFile(string file, AVMediaType _type);;
     ~MediaFile() {

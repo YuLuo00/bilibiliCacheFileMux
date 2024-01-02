@@ -35,6 +35,10 @@ bool TestExample::testMainFunc(std::string vedioFile, std::string audioFile, std
             AVStream* inStream = iter->second.first;
             vector<AVPacket*> pkts = iter->second.second;
             AVStream* outStream = avformat_new_stream(m_outFormatContext, NULL);
+            // skip other type stream
+            if (file->m_type != inStream->codecpar->codec_type) {
+                continue;
+            }
             // copy stream info
             avcodec_parameters_copy(outStream->codecpar, inStream->codecpar);
             CopyStream(inStream, outStream);

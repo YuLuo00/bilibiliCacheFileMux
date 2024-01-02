@@ -6,6 +6,7 @@ using namespace std;
 
 MediaFile::MediaFile(string file, AVMediaType _type) {
     m_file = file;
+    m_type = _type;
 }
 
 
