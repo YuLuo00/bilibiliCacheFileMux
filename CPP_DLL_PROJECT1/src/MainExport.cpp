@@ -109,7 +109,6 @@ bool TestExample::testMainFunc(std::string vedioFile, std::string audioFile, std
     }
     // 关闭输出文件
     avio_close(m_outFormatContext->pb);
-    //buffer.Open(m_outFormatContext);
     return vedioFile.empty();
 
 }

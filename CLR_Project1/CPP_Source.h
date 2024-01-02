@@ -15,9 +15,8 @@ namespace CppAV {
             std::string _output = msclr::interop::marshal_as<std::string>(outputPath);
 
             bool ret0 = TestExample::testMainFunc(_vedio, _audio, _output);
-            bool ret1 = TestExample::testMainFunc("", _audio, _output);
 
-            return ret0 != ret1;
+            return ret0;
         }
         static bool importFuncExample(String^ fileName, String^ passwd, [Out] String^% err)
         {
